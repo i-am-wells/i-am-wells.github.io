@@ -15,8 +15,7 @@ body {
   width: 80%;
   max-width: 50em;
   justify-self: center;
-  margin-inline-start: 5em;
-  margin-inline-end: 5em;
+  margin-inline: 2em;
 }
 
 .flex1 {
@@ -842,7 +841,8 @@ const header = m('.header',
   m('p',
     `Instead I made this page to try to capture something different: not necessarily the best ones, or the ones I'm into today, but `,
     m('i', `those that remind me strongly of a particular time in my life,`),
-    ` grouped by era, plus some explanation and pictures to make it interesting.`),
+  ` grouped by era, plus some explanation and pictures to make it interesting.`),
+  m('p', `Note, if you're reading this on a phone, I did my best, but the layout is nicer on desktop.`),
 )
 
 const Page = {
