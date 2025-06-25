@@ -33,12 +33,6 @@ body {
   margin-bottom: 352px;
 }
 
-@media (max-width: 600px) {
-  .content {
-    width: 200vw;
-  }
-}
-
 .player {
   position: fixed;
   bottom: 12px;
@@ -154,6 +148,17 @@ body {
   border-radius: 6px;
   max-width: 300px;
 }
+
+/* Mobile workarounds */
+@media (max-width: 600px) {
+  .period {
+    background-attachment: scroll;
+  }
+  .content {
+    width: 200vw;
+  }
+}
+
 </style>
 <body></body>
 <script src="/mithril.min.js"></script>
@@ -290,15 +295,12 @@ function period(details, body) {
   )
 }
 
-function image(url, width, height, targetWidth, fixedSize) {
+function image(url, width, height) {
   return m('.image',
     m('img', {
-      width: targetWidth,
-      height: width ? (targetWidth / width) * height : '',
+      width: width,
+      height: height,
       src: url,
-      style: {
-        width: fixedSize ? targetWidth : undefined
-      }
     })
   )
 }
@@ -488,7 +490,7 @@ content.push(period(
   },
   [
     `I didn't get a fancy internship like I (was told I) wanted so it was back to the sandwich mines.`,
-    image('head-west.jpg', 1874, 860, 300),
+    image('head-west.jpg', 500, 229),
     `Windows down. Aux cord in the PSP. Sandwich delivery time.`,
     spotifySongEmbed(
       'Coconut',
@@ -593,7 +595,7 @@ content.push(period(
     ),
     `This is it. This is the Pirate House.`,
     `Many happy memories in our crusty little apartment on the middle floor.`,
-    image('pirate-house.png', 1526, 898, 300),
+    image('pirate-house.png', 500, 294),
     spotifySongEmbed(
       'Stand By Me',
       'Florence + The Machine',
@@ -631,7 +633,7 @@ content.push(period(
       'rgb(115, 123, 86)',
       '26ky3sBMKv31Kpvil5pGDh'
     ),
-    image('late-pirate-house.png', 1508, 888, 300),
+    image('late-pirate-house.png', 500, 294),
     `I definitely hid our heavy CRT TV in a stairwell when we moved out. Maybe it's still there?`,
     spotifySongEmbed(
       'Henriette',
@@ -777,7 +779,7 @@ content.push(period(
       'rgb(171, 79, 63)',
       '2p9mqR7DcBgNjDo7MzdMi8'
     ),
-    image('car.jpg', 4032, 3024, 300),
+    image('car.jpg', 500, 375),
     m('hr'),
     `Summer 2022`,
     `Car totaled, fighting "Fireman's Insurance of Missouri" for a fair payment, driving the worst rental car in the world to and from Kirkland and blaring these songs on the 405.`,
@@ -793,7 +795,7 @@ content.push(period(
       'rgb(192, 48, 44)',
       '0pJW1Xw3aY4Eh6k5iuBkfI'
     ),
-    image('carsmash.jpg', 4032, 3024, 300),
+    image('carsmash.jpg', 500, 375),
     m('hr'),
     spotifyPlaylistEmbed(
       'Summer 2021',
