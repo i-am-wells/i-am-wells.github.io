@@ -1,0 +1,854 @@
+<title>Music timeline</title>
+<style>
+html {
+  background-color: rgb(199, 255, 236);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+body {
+  margin: 0;
+}
+
+.header {
+  width: 80%;
+  max-width: 50em;
+  justify-self: center;
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.image > img {
+  width: 100%;
+  height: 100%;
+}
+
+.content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 352px;
+}
+
+.player {
+  position: fixed;
+  bottom: 12px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  align-items: center;
+}
+
+.player>iframe {
+  border-radius: 12px;
+  width: 90%;
+}
+
+.shadow {
+  box-shadow: 0px 10px 10px rgb(63, 63, 63);
+}
+
+.close {
+  height: fit-content;
+  background-color: aliceblue;
+  padding: .5em;
+  border-radius: .5em;
+}
+
+.button:hover {
+  cursor: pointer;
+  background-color: black;
+  color: white;
+}
+
+.years-range-bar {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  font-size: xx-large;
+}
+
+.period {
+  width: 100%;
+  height: 100%;
+  position: sticky;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.period > .row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+  min-height: 90vh;
+}
+
+.period-highlight {
+  background-color: rgba(211, 211, 211, 0.8);
+}
+
+.period:hover .period-highlight {
+  background-color: rgba(240, 248, 255, 0.8);
+}
+
+.content-box {
+  border-radius: 6px;
+  padding: 6px;
+  width: 500px;
+  height: fit-content;
+  align-self: center;
+}
+
+.player-button-container {
+  place-self: center;
+  width: 300px;
+  border: 2px solid black;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  overflow: hidden;
+}
+
+.player-button {
+  display: flex;
+  gap: 12px;
+  color: white;
+  cursor: pointer;
+  padding: 12px;
+}
+
+.caption {
+  padding: 12px;
+}
+
+.player-button-container:hover div {
+  background-color: black !important;
+}
+
+.artist {
+  color: lightgray;
+}
+
+.small {
+  font-size: small;
+}
+
+.background-caption {
+  width: fit-content;
+  padding: 6px;
+  border-radius: 6px;
+  max-width: 300px;
+}
+</style>
+<body></body>
+<script src="/mithril.min.js"></script>
+<script>
+
+class Player {
+  constructor() {
+    this.reset()
+  }
+
+  reset() {
+    this.url = null
+    this.isPlaylist = false
+    this.color = 'black'
+  }
+
+  play(id, frameType, color) {
+    this.url = `https://open.spotify.com/embed/${frameType}/${id}?utm_source=generator`
+    this.isPlaylist = frameType === 'playlist'
+    this.color = color
+  }
+
+  view() {
+    return m('.player',
+      {
+        style: {
+          display: !this.url ? 'none' : undefined,
+        }
+      },
+      m('iframe.shadow',
+        {
+          src: this.url,
+          width: '100%',
+          height: this.isPlaylist ? 352 : 152,
+          frameBorder: 0,
+          allowfullscreen: '',
+          allow: 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',
+          loading: 'lazy',
+          style: {
+            backgroundColor: this.color
+          }
+        },
+      ),
+      m('.close.button.shadow',
+        {
+          onclick: () => {
+            player = new Player()
+          }
+        },
+        'Close'
+      )
+    )
+  }
+}
+
+let player = new Player
+
+function spotifyEmbed(title, artist, color, id, frameType, caption) {
+  return m('.player-button-container.button',
+    {
+      onclick: (e) => {
+        player.play(id, frameType, color)
+      }
+    },
+    m('.player-button',
+      {
+        style: {
+          backgroundColor: color
+        },
+      },
+      m('.title', title),
+      m('.artist', artist)
+    ),
+    caption ? m('.caption', caption) : '',
+  )
+}
+
+function spotifySongEmbed(title, artist, color, id, caption) {
+  return spotifyEmbed(title, artist, color, id, 'track', caption)
+}
+
+function spotifyPlaylistEmbed(title, color, id, caption) {
+  return spotifyEmbed(title, 'playlist', color, id, 'playlist', caption)
+}
+
+function formatDate(yearNum) {
+  const year = Math.floor(yearNum);
+  const month = new Date(year, Math.round((yearNum - year) * 12))
+    .toLocaleString('default', { month: 'short' });
+  return month + ' ' + year;
+}
+
+let mirror = false;
+
+function period(details, body) {
+  const contentBox = m('.content-box.period-highlight',
+    m('h1', details.name),
+    body.map((item) => {
+      if (typeof (item) === 'string')
+        return m('p', item)
+      else
+        return item;
+    }),
+  )
+
+  const backgroundCaption = details.backgroundCaption
+    ? m('.background-caption.period-highlight',
+        {
+          style: {
+            justifySelf: mirror ? undefined : 'end'
+          }
+        },
+        details.backgroundCaption
+      )
+    : null
+
+  // Alternate placing content left and right of the line
+  const oppositeBox = m('.content-box', backgroundCaption)
+  const box0 = mirror ? oppositeBox : contentBox
+  const box1 = mirror ? contentBox : oppositeBox
+  mirror = !mirror
+
+  return m('.period',
+    {
+      style: {backgroundImage: `url('${details.background}')`}
+    },
+    m('.row',
+      m('.flex1'),
+      box0,
+      m('.years-range-bar.period-highlight', formatDate(details.from), ' - ', formatDate(details.to)),
+      box1,
+      m('.flex1'),
+    )
+  )
+}
+
+function image(url, width, height, targetWidth, fixedSize) {
+  return m('.image',
+    m('img', {
+      width: targetWidth,
+      height: width ? (targetWidth / width) * height : '',
+      src: url,
+      style: {
+        width: fixedSize ? targetWidth : undefined
+      }
+    })
+  )
+}
+
+const content = []
+content.push(period(
+  {
+    name: 'Prehistory',
+    from: 1996,
+    to: 2007,
+    background: 'road.jpg',
+  },
+  [
+    `I don't have much nostalgia for any popular music of the early 2000s. As a kid I wasn't choosing what I listened to: radio was for NPR or sports, and CDs were rarely from the new millenium. In hindsight I don't think I missed much though.`,
+    spotifySongEmbed(
+      'Songs from the Wood',
+      'Jethro Tull',
+      'rgb(91, 84, 22)',
+      '5AhyxWDDMvc3l7vttW68Al',
+      [
+        `Classic mom song. Maybe I'm named after the flute man? Can't tell if she's serious about that.`,
+      ],
+    ),
+    spotifySongEmbed(
+      'Fionnghuala (Mouth Music)',
+      'Nightnoise',
+      'rgb(46, 93, 23)',
+      '4RQUb6UqwpFOMAYNv4e3mz',
+      [
+        `She would record CDs onto tapes for listening in the car. This one was recorded three times back-to-back because she felt it wasn't long enough.`,
+      ]
+    ),
+    `Mom: new age, Irish, pan pipes, Jethro Tull. Dad: blues compilations.`,
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Prehistory',
+      'rgb(112, 53, 58)',
+      '2leRZLG6IVXsETfoevoFPt',
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Dark Ages',
+    from: 2007,
+    to: 2009,
+    background: 'olddog.jpg',
+    backgroundCaption: 'Our grouchy dog Katie who we adoped around that time. I miss you, you big jerk.'
+  },
+  [
+    `Age 12 ish?`,
+    `Around this time I got the idea that I needed to relate to kids better, and that the way to do that was to listen to the music they listened to. The problem was that I had no idea what music that was.`,
+    `So, bored at home for a whole summer, I listened to a lot of what I now know as butt rock*. (Commercial radio, gasp!)`,
+    `I didn't really like it, but I wanted to like it so badly, because I thought it would make me cool.`,
+    `Somewhere in my parents' house there's a tape with a bunch of songs I recorded off the radio. My method:`,
+    m('ol',
+      m('li', `Leave the radio on all day`),
+      m('li', `Run over and smash the record button if it's a song I'm okay with`),
+    ),
+    `Of course, this meant that they were all missing the first five seconds or so.`,
+    `Only a few songs from this era make the list, and they both predate butt rock:`,
+    spotifySongEmbed(
+      'Pepper',
+      'Butthole Surfers',
+      'rgb(32, 43, 116)',
+      '1ng36571Iyov4HBxUClySn'
+    ),
+    spotifySongEmbed(
+      'Rooster',
+      'Alice in Chains',
+      'rgb(170, 100, 63)',
+      '0wvIGFIgbyz4JNwQhZgTv2'
+    ),
+    m('p.small',
+      `*"Butt rock" is a term I only learned recently, which I understand to mean a particular genre of edgy-sounding yet bland ultra-commercial rock of about twenty years ago (maybe a play on "nothing but rock!"). I was starting to tell Vivian about it and she said this:`),
+    m('p.small', `"That's so stupid, why not just call it ass rock?"`),
+    //image('phone.jpg', 2016, 1334, 300),
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Junior high/high school',
+    from: 2009,
+    to: 2014.5,
+    background: 'dam.jpg',
+  },
+  [
+    `Me at age 13 or 14:`,
+    m('ul',
+      m('li', `Cargo shorts/hat/giant camo coat`),
+      m('li', `Stop motion`),
+      m('li', `Digging holes`),
+      m('li', `Burning things`),
+    ),
+    `I somehow missed the wave of portable CD players -> little MP3 player gadgets -> iPod and instead listened to my tunes on a Playstation Portable that I got secondhand in 2010 or so.`,
+    spotifySongEmbed(
+      'The Cave',
+      'Mumford and Sons',
+      'rgb(79, 103, 104)',
+      '1JlssWnwFUiEzuSqw4H1V1',
+      [
+        `Not sure where I heard this (maybe another Uncle Evan mix CD?) but it was big for me at the time.`,
+        m('p.small', `You can stop here, their other music that I've heard sounds pretty similar.`),
+      ]
+    ),
+    m('hr'),
+    `Late high school`,
+    m('p',
+      `More Jethro Tull. At the time I thought it was extremely cool of me to be into an old timey band that no one my age had heard of. Bonus points for the wild flute man. No one could find out it was `,
+      m('i', `Mom music`),
+      ` though.`
+    ),
+    spotifySongEmbed(
+      'Living in the Past',
+      'Jethro Tull',
+      'rgb(75, 42, 41)',
+      '0J68chnuV43Utj9QHLWkbK',
+      [
+        `Best 5/4 song, but I'm still accepting nominations.`
+      ]
+    ),
+    `In my last year of high school, our school got Chromebooks for all students, which was a huge opportunity for everyone to listen to music constantly. Within the first week the school had to ban YouTube because their entire internet bandwidth was consumed by kids looking up their music that way.`,
+    spotifySongEmbed(
+      'Plastic Soldiers',
+      'Portugal. The Man',
+      'rgb(56, 56, 56)',
+      '2VjySzgGQeZcMGWuPMAnBF',
+      [
+        m('', `Soon someone discovered Soundcloud as a music source that the school hadn't blocked yet.`),
+        m('p', `I found Portugal. The Man there of all places. This song was notable for me in 2014.`),
+      ]
+    ),
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Dorm Room',
+    from: 2014.5,
+    to: 2015.3,
+    background: 'chalk.jpg',
+    backgroundCaption: 'Probably the only people to draw on the sidewalks outside the CS building.'
+  },
+  [
+    `My roommate was a partier which meant he was gone a lot, but when he was around, he was a late-night studier. He knew I liked to sleep, though, so he built a bedsheet tent over his desk to keep the rest of the room dark.`,
+    spotifySongEmbed(
+      'Hard Believer',
+      'Fink',
+      'rgb(117, 120, 109)',
+      '5eaDs2LoaQtjxRBSj0rB9i',
+      [
+        `My dorm building didn't have air conditioning, so the first few weeks of school were brutal. This song takes me back to sleeping in the heat with a fan in the window.`,
+      ]
+    ),
+    spotifySongEmbed(
+      'Bugatti',
+      'Tiga feat. Pusha T',
+      'rgb(40, 74, 155)',
+      '64ekXhjECmsMd27YY3lRxq',
+      [
+        `Another Soundcloud discovery. The best of the worst.`,
+      ]
+    ),
+    spotifySongEmbed(
+      `I'm Not Done`,
+      'Fever Ray',
+      'rgb(83, 83, 83)',
+      '4eiMosn8NzqGtQMOoR5DgS', 
+    ),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Dorm Room',
+      'rgb(185, 56, 55)',
+      '7oubduAQYVq5fh3QHuTz9s'
+    ),
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Sandwich Artist',
+    from: 2015.3,
+    to: 2015.7,
+    background: 'icecream.jpg',
+    backgroundCaption: 'I believe the hall of sandwiches is once again an automatic car wash'
+  },
+  [
+    `I didn't get a fancy internship like I (was told I) wanted so it was back to the sandwich mines.`,
+    image('head-west.jpg', 1874, 860, 300),
+    `Windows down. Aux cord in the PSP. Sandwich delivery time.`,
+    spotifySongEmbed(
+      'Coconut',
+      'Fever Ray',
+      'rgb(83, 83, 83)',
+      '7InHkY3xxRAuXfQQyv89Lu',
+      ['A song for the sandwiches being on time.']
+    ),
+    spotifySongEmbed(
+      'Wake Me Up',
+      'Avicii',
+      'rgb(119, 119, 119)',
+      '4QRZirU4s1f30iDHzuKncj',
+      ['Have you heard the acoustic version?']
+    ),
+    m('hr'),
+    spotifySongEmbed(
+      'Heaven Knows',
+      'The Shouting Matches',
+      'rgb(83, 83, 83)',
+      '4lEnkalPpZEYgTzV5t9oJL',
+      [
+        `A return to true ass rock form. This was my favorite thing to listen to while seeing how fast the car could go.`
+      ],
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Hawk/Hell',
+    from: 2015.7,
+    to: 2016.4,
+    background: 'skull.jpg',
+    backgroundCaption: `Hawk decor. I don't remember why we had the shiny skull but it was badass.`,
+  },
+  [
+    spotifySongEmbed(
+      'How You Like Me Now',
+      'The Heavy',
+      'rgb(83, 83, 83)',
+      '7D180Q77XAEP7atBLmMTgK',
+      [
+        `Sometimes you have bad roommates, sometimes you are the bad roommate.`,
+      ]
+    ),
+    `These songs take me back to the long walk between "Hawk" (my apartment) and "Hell" (Vivian's apartment), which I was constantly doing in from fall 2015 to spring 2016.`,
+    spotifySongEmbed(
+      `La femme d'argent`,
+      'Air',
+      'rgb(98, 121, 147)',
+      '6tEaLXZlN8b71vWV1SSsRf',
+    ),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Hawk/Hell',
+      'rgb(119, 122, 85)',
+      '0DxQ0P9sXr1pMDNZ4Ll50d'
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Tucson',
+    from: 2016.4,
+    to: 2016.7,
+    background: 'whitesands.jpg',
+    backgroundCaption: `Not actually Tucson, but a view of White Sands from the drive to get there. I can't believe I don't have a single picture from Tucson.`
+  },
+  [
+    spotifySongEmbed(
+      `Maggie's Farm`,
+      'Rage Against the Machine',
+      'rgb(184, 51, 43)',
+      '2t0tVmiSkHWvKgojpjO21Z',
+    ),
+    `June and July 2016, spent in Tucson for an internship. I expected it to be a desert but there was life everywhere!`,
+    `(Damn you Alvin for being interested in cacti. That was going to be my thing.)`,
+    spotifySongEmbed(
+      'Catfish Blues',
+      'Gary Clark Jr.',
+      'rgb(83, 83, 83)',
+      '2CU9pGd7lq4fSHiFwjs842',
+    ),
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Early Pirate House',
+    from: 2016.7,
+    to: 2017.1,
+    background: 'winter.jpg'
+  },
+  [
+    spotifySongEmbed(
+      'The Captain',
+      'The Knife',
+      'rgb(11, 40, 70)',
+      '6XwN8gUpprAyI7Ip9JQxan',
+    ),
+    `This is it. This is the Pirate House.`,
+    `Many happy memories in our crusty little apartment on the middle floor.`,
+    image('pirate-house.png', 1526, 898, 300),
+    spotifySongEmbed(
+      'Stand By Me',
+      'Florence + The Machine',
+      'rgb(83, 83, 83)',
+      '5XSU59wtE5CRCAEyHmmGy4',
+    ),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Early Pirate House',
+      'rgb(113, 121, 98)',
+      '77UKRi8mDK6kTEhUdTm7nQ'
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Late Pirate House',
+    from: 2017.1,
+    to: 2018.4,
+    background: 'river.jpg'
+  },
+  [
+    `Aldi. Park yoga. Bed bugs.`,
+    spotifySongEmbed(
+      'Die Young',
+      'Sylvan Esso',
+      'rgb(117, 120, 117)',
+      '1BRwuvjhkgezmv1gcI6lT6',
+    ),
+    `The pirate house really was a mess. The couple in the basement told us about how snakes had been getting in through holes in the wall at ground level and falling onto their bed at night.`,
+    spotifySongEmbed(
+      'Soldier, Poet, King',
+      'The Oh Hellos',
+      'rgb(115, 123, 86)',
+      '26ky3sBMKv31Kpvil5pGDh'
+    ),
+    image('late-pirate-house.png', 1508, 888, 300),
+    `I definitely hid our heavy CRT TV in a stairwell when we moved out. Maybe it's still there?`,
+    spotifySongEmbed(
+      'Henriette',
+      'Lake Street Dive',
+      'rgb(25, 44, 131)',
+      '27UiWQ1QUHt8HWTKWVppgf'
+    ),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Late Pirate House',
+      'rgb(115, 123, 86)',
+      '67vocEKjVnVMrTdUBmyFiK',
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Summer 2018 (pre-Seattle)',
+    from: 2018.4,
+    to: 2018.6,
+    background: '2018.jpg'
+  },
+  [
+    `Hoo boy.`,
+    spotifySongEmbed(
+      '3WW',
+      'alt-J',
+      'rgb(140, 43, 38)',
+      '5wYLW17fs9JOolzR2W3AmM',
+    ),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Summer 2018 (pre-Seattle)',
+      'rgb(140, 43, 38)',
+      '7jRrhh6dhfFzghspZJXL1l',
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Early Seattle',
+    from: 2018.6,
+    to: 2019.4,
+    background: 'smoke.jpg',
+    backgroundCaption: 'Hazy both because of wildfire smoke and because I had recently smashed my phone camera.'
+  },
+  [
+    `Lots of job searching and stress and Breath of the Wild.`,
+    spotifySongEmbed(
+      'Cello Song',
+      'The Books',
+      'rgb(119, 119, 119)',
+      '4cR5xGjVMuiGJXXsr5fhvE',
+    ),
+    spotifySongEmbed(
+      'Goose Snow Cone',
+      'Aimee Mann',
+      'rgb(45, 63, 42)',
+      '24NbwTMfsr94HSKyMMd8LB',
+    ),
+    spotifySongEmbed(
+      'Moonlight Midnight',
+      'Peter Rowan, Tony Rice',
+      'rgb(81, 28, 8)',
+      '181jjYqRXdu8XAWhO4vPKS',
+    ),
+    spotifySongEmbed(
+      'Astral Weeks',
+      'Van Morrison',
+      'rgb(106, 127, 48)',
+      '0vz4iTEfsp2lunsRJeMzjj',
+    ),
+    `If you've heard my story about walking past the Google offices in Fremont and getting angry about all the Google people milling about with their plates of free food, that was this era.`,
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Early Seattle',
+      'rgb(110, 122, 108)',
+      '6cOSNlzlshFDCPorf87kso'
+    ),
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Ballard',
+    from: 2019.4,
+    to: 2020.2,
+    background: 'ballard2.jpg',
+    backgroundCaption: 'Can any house be a pirate house?'
+  },
+  [
+    `I rented a little house above landlord Joe's garage. There was a skylight right over my bed which made it increasingly hard to get enough sleep around the summer solstice. To solve this I nailed a blanket to the ceiling.`,
+    spotifySongEmbed(
+      'Shore Leave',
+      'John Hammond',
+      'rgb(123, 118, 108)',
+      '68Uzds0GkP6TmFJv5q0SOQ'
+    ),
+    `Lots of work travel that year, and waiting for the 40 bus next to the Philadelphia Church (we're in Seattle smh) and an assisted living place. I met some of the old folks at the bus stop, including a lady who said that back in her day, Fremont was known as "chicken shit alley".`,
+    spotifySongEmbed(
+      `Buzzin' Fly`,
+      'Tim Buckley',
+      'rgb(119, 53, 44)',
+      '3Xy16SYnhBiSBL5yUXaHG1'
+    ),
+    spotifySongEmbed(
+      'The Sun',
+      'Kim Jung Mi',
+      'rgb(83, 120, 176)',
+      '6uBFcQ0TFjdnS5QUTff2Yb'
+    ),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Ballard',
+      'rgb(56, 56, 56)',
+      '06xL1eW312n69y5DW1mrU6'
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'COVID/Blue House',
+    from: 2020.2,
+    to: 2022.5,
+    background: 'banana.jpg',
+    backgroundCaption: `It was a deal we couldn't pass up. Every banana went to a good home.`
+  },
+  [
+    `Summer 2021`,
+    `Plenty of sneaky Costco runs, working from home, and watching TV on puffer.stanford.edu.`,
+    spotifySongEmbed(
+      `Birthday Boys`,
+      'Oysterhead',
+      'rgb(111, 121, 121)',
+      '2NOlV6ZpoYp5QGNxmfx4Gu'
+    ),
+    spotifySongEmbed(
+      `Blanket Song`,
+      'Kikagaku Moyo',
+      'rgb(171, 79, 63)',
+      '2p9mqR7DcBgNjDo7MzdMi8'
+    ),
+    image('car.jpg', 4032, 3024, 300),
+    m('hr'),
+    `Summer 2022`,
+    `Car totaled, fighting "Fireman's Insurance of Missouri" for a fair payment, driving the worst rental car in the world to and from Kirkland and blaring these songs on the 405.`,
+    spotifySongEmbed(
+      `Time Forgot`,
+      'Daniel Romano',
+      'rgb(154, 111, 41)',
+      '1wfjfxtom5Lv2S15eXOaJW'
+    ),
+    spotifySongEmbed(
+      `I Know The End`,
+      'Phoebe Bridgers',
+      'rgb(192, 48, 44)',
+      '0pJW1Xw3aY4Eh6k5iuBkfI'
+    ),
+    image('carsmash.jpg', 4032, 3024, 300),
+    m('hr'),
+    spotifyPlaylistEmbed(
+      'Summer 2021',
+      'rgb(119, 119, 115)',
+      '0HNHQEU3spDM8c395754DW',
+    ),
+    spotifyPlaylistEmbed(
+      'Summer 2022',
+      'rgb(59, 72, 72)',
+      '0l4a3gNEca62kqO3TlsTaW',
+    )
+  ]
+))
+
+content.push(period(
+  {
+    name: 'Modern Times',
+    from: 2022.5,
+    to: 2025.4,
+    background: 'bird.jpg',
+  },
+  [
+    `This is my current everyday rotation of songs. I'm not sure yet which ones will stand out so here they all are.`,
+    spotifyPlaylistEmbed(
+      'Modern Times',
+      'rgb(112, 122, 111)',
+      '4DAt0nSobZXeHARPZPdpGa',
+    ),
+  ]
+))
+
+function p(s) {
+  return m('p', s)
+}
+
+const header = m('.header', 
+  m('h1', 'Music Timeline'),
+  m('p.small', 'June 25, 2025'),
+  p(`I've had multiple requests to share some deep cuts from my Spotify liked songs list.`),
+  p(`That proved challenging though because the full list is LONG and I want to share most of them. Right now it stands at 861 songs, being roughly every song I've ever wanted to hear again in my life (at least at the moment that I added them, starting in 2014).`),
+  p(`My first thought was to just make a playlist of the very best ones in order, but that still comes out to more than 100 (really none of them can be cut!), and listening to that much of someone else's favorite music without context is boring.`),
+  m('p',
+    `Instead I made this page to try to capture something different: not necessarily the best ones, or the ones I'm into today, but `,
+    m('i', `those that remind me strongly of a particular time in my life,`),
+    ` grouped by era, plus some explanation and pictures to make it interesting.`),
+)
+
+const Page = {
+  view: () => {
+    return [
+      header,
+      m('.content', content),
+      m(player),
+      m('.footer',
+        {style: {justifyItems: 'center'}},
+        m('img[src=dog.jpg][width=500]'),
+        m('', `Oh no it's the future now`),
+      )
+    ]
+  }
+}
+
+m.mount(document.body, Page)
+</script>
