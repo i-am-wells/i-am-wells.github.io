@@ -1,5 +1,9 @@
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Music timeline</title>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Music timeline</title>
+  </head>
 <style>
 html {
   background-color: rgb(199, 255, 236);
@@ -58,6 +62,8 @@ body {
   background-color: aliceblue;
   padding: .5em;
   border-radius: .5em;
+  margin-left: -80px;
+  margin-top: -160px;
 }
 
 .button:hover {
@@ -151,7 +157,7 @@ body {
 }
 
 .footer {
-  margin-bottom: 20px;
+  margin-bottom: 400px;
 }
 
 /* Mobile workarounds */
@@ -167,11 +173,21 @@ body {
 </style>
 <body></body>
 <script src="/mithril.min.js"></script>
+<script src="https://open.spotify.com/embed/iframe-api/v1"></script>
 <script>
+
+function spotifyURI(id, type) {
+}
 
 class Player {
   constructor() {
     this.reset()
+    this.player = null
+    this.visible = false
+  }
+
+  onSpotifyReady(spotify) {
+    this.spotify = spotify;
   }
 
   reset() {
@@ -181,36 +197,45 @@ class Player {
   }
 
   play(id, frameType, color) {
-    this.url = `https://open.spotify.com/embed/${frameType}/${id}?utm_source=generator`
-    this.isPlaylist = frameType === 'playlist'
-    this.color = color
+    if (!this.spotify)
+      return
+    
+    document.getElementById('playerouter').removeAttribute('style');
+    
+    const uri = `spotify:${frameType}:${id}`
+
+    if (!this.controller) {
+      let element = document.getElementById('playerdiv');
+      let options = {
+        height: 352,
+        uri: uri
+      }
+  
+      this.spotify.createController(element, options, controller => {
+        controller.addListener('ready', () => {
+          controller.play()
+          this.controller = controller
+        })
+      })
+    } else {
+      this.controller.loadUri(uri)
+    }
   }
 
   view() {
-    return m('.player',
+    return m('#playerouter.player',
       {
         style: {
-          display: !this.url ? 'none' : undefined,
+          visibility: 'hidden'
         }
       },
-      m('iframe.shadow',
-        {
-          src: this.url,
-          width: '100%',
-          height: this.isPlaylist ? 352 : 152,
-          frameBorder: 0,
-          allowfullscreen: '',
-          allow: 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',
-          loading: 'lazy',
-          style: {
-            backgroundColor: this.color
-          }
-        },
-      ),
+      m('#playerdiv.shadow'),
       m('.close.button.shadow',
         {
           onclick: () => {
-            player = new Player()
+            this.controller?.pause()
+            this.visible = false
+            document.getElementById('playerouter').setAttribute('style', 'visibility: hidden');
           }
         },
         'Close'
@@ -220,6 +245,7 @@ class Player {
 }
 
 let player = new Player
+window.onSpotifyIframeApiReady = IFrameAPI => { player.onSpotifyReady(IFrameAPI) }
 
 function spotifyEmbed(title, artist, color, id, frameType, caption) {
   return m('.player-button-container.button',
@@ -866,3 +892,4 @@ const Page = {
 
 m.mount(document.body, Page)
 </script>
+</html>
