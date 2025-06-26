@@ -160,6 +160,10 @@ body {
   margin-bottom: 400px;
 }
 
+a.outlink {
+  color: white;
+}
+
 /* Mobile workarounds */
 @media (max-width: 600px) {
   .period {
@@ -261,7 +265,15 @@ function spotifyEmbed(title, artist, color, id, frameType, caption) {
         },
       },
       m('.title', title),
-      m('.artist', artist)
+      m('.artist', artist),
+      // m('a.outlink', 
+      //   {
+      //     href: `https://open.spotify.com/${frameType}/${id}`,
+      //     target: '_blank',
+      //     rel: 'noopener noreferrer',
+      //   },
+      //   m.trust('&#x2197;'),
+      // ),
     ),
     caption ? m('.caption', caption) : '',
   )
