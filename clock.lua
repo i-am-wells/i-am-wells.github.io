@@ -1,6 +1,8 @@
 local js = require 'js'
 local dom = require 'dom'
 
+local resumeLink = 'https://drive.google.com/file/d/17Bk3zN2aE3yDxVm-nsd9vvUJy_mEEgdt/view?usp=drive_link'
+
 local function makeCircle(id, cx, cy, r)
   return dom.svg.circle {
     id = id,
@@ -42,7 +44,7 @@ local function smallNumber(id, x, y, angle)
 end
 
 local function updateHand(id, value, max)
-  local angle = value / max * 360      
+  local angle = value / max * 360
   js.global.document
     :getElementById(id)
     :setAttribute('style', ('transform: rotate(%fdeg)'):format(angle))
@@ -57,9 +59,14 @@ local function update()
 
   updateHand('hour', hours, 12)
   updateHand('minute', minutes, 60)
+  updateHand('text1', seconds, 60)
 end
 
-local function makeClock()
+local function newTabLink(text, href)
+  return dom.svg.a {href=href, target="_blank", rel="noopener noreferrer", text}
+end
+
+return function()
   return dom.svg {
     width = '297mm',
     height = '297mm',
@@ -69,6 +76,7 @@ local function makeClock()
 
     oncreate = function(el)
       dom.setInterval(update, 1000)
+      update()
     end,
 
     dom.svg.style {[[
@@ -87,11 +95,30 @@ svg {
 .hand {
   transform-origin: 50% 50%;
 }
+.outlinetext {
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  font-stretch: normal;
+  font-size: 25.4px;
+  font-family: Arial Rounded MT Bold;
+  text-align: start;
+  writing-mode: lr-tb;
+  direction: ltr;
+  text-anchor: start;
+  white-space: pre;
+  shape-padding: 3.49421;
+  display: inline;
+  fill: #000000;
+  fill-opacity: 0;
+  stroke: #000000;
+  stroke-width: 1.96797;
+  stroke-linejoin: round;
+  stroke-dasharray: none;
+}
     ]]},
 
     dom.svg.g {
-      id = 'layer1',
-
       makeCircle('face', 148.5, 148.5, 147.451),
       makeCircle('center', 148.5, 148.5, 2.3),
 
@@ -128,8 +155,42 @@ svg {
         y = 75.174149,
         ry= 4.7802553,
       },
+
+      dom.svg.text {
+        id = 'text1',
+        class = 'outlinetext hand',
+        
+        dom.svg.textPath {
+          href='#path2',
+          id="textPath2",
+          'Ian Wells',
+          dom.svg.tspan {
+            style= {
+              fontSize = '16.9333px',
+            },
+            id="tspan4",
+            ' ... ',
+            newTabLink('résumé', resumeLink),
+            ' ... ',
+            newTabLink('github', 'http://github.com/i-am-wells'),
+            ' ... ',
+            --dom.svg.a {href="http://google.com/", 'misc'},
+            --' ... ',
+          }
+        }
+      },
+
+      dom.svg.path {
+        id = 'path2',
+        style = {
+          fillOpacity = 0,
+          stroke = '#000000',
+          strokeWidth = 0,
+          strokeLinejoin = 'round',
+          strokeDasharray = 'none',
+        },
+        d = 'M 208.51786,148.5 A 60.017864,60.017864 0 0 1 148.5,208.51786 60.017864,60.017864 0 0 1 88.482136,148.5 60.017864,60.017864 0 0 1 148.5,88.482136 60.017864,60.017864 0 0 1 208.51786,148.5 Z',
+      },
     },
   }
 end
-
-return makeClock()

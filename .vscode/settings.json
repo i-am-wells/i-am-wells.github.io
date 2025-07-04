@@ -8,6 +8,8 @@
     "circle",
     "rect",
     "g",
-    "defs"
+    "defs",
+    "text",
+    "tspan"
   ]
 }

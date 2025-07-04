@@ -16,6 +16,18 @@ local function getOrCreateMetatable(t)
   return meta
 end
 
+local function styleTableToString(t)
+  local styles = ''
+  for k, v in pairs(t) do
+    -- convert camelcase names to hyphenated
+    local name = k:gsub('%u', function(capital) return '-'..capital:lower() end)
+    local value = tostring(v)
+    styles = styles..string.format('%s:%s;', name, value)
+  end
+  return styles
+end
+
+
 local appendContent
 
 local function createElement(namespace, tagName, content)
@@ -33,6 +45,10 @@ local function createElement(namespace, tagName, content)
         childContent[k] = v
       else
         -- Attribute
+        if k == 'style' and type(v) == 'table' then
+          v = styleTableToString(v)
+        end
+
         if namespace then
           el:setAttributeNS(js.null, k, v)
         else
@@ -94,6 +110,9 @@ end
 function dom.mount(mountPoint, content)
   -- Clear existing children
   mountPoint:replaceChildren()
+  if type(content) == 'function' then
+    content = content()
+  end
   appendContent(mountPoint, content)
 
   for _, elementAndOnCreate in ipairs(pendingOnCreate) do
