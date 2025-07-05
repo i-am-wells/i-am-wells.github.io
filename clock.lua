@@ -50,24 +50,60 @@ local function updateHand(id, value, max)
     :setAttribute('style', ('transform: rotate(%fdeg)'):format(angle))
 end
 
+local secondsCounter = 0
+local updateInterval
+
 local function update()
   local date = dom.now()
 
   local seconds = date:getSeconds()
+  if secondsCounter == 0 then secondsCounter = seconds end
   local minutes = date:getMinutes() + (seconds / 60)
   local hours = date:getHours() + (minutes / 60)
 
   updateHand('hour', hours, 12)
   updateHand('minute', minutes, 60)
-  updateHand('text1', seconds, 60)
+  updateHand('textgroup', secondsCounter, 60)
+  secondsCounter = secondsCounter + 1
 end
 
 local function newTabLink(text, href)
   return dom.svg.a {href=href, target="_blank", rel="noopener noreferrer", text}
 end
 
-return function()
-  return dom.svg {
+return function(what)
+  local about = {
+    id = 'about',
+    style = {
+      display = 'none',
+      position = 'absolute',
+      placeSelf = 'center',
+      gridColumn = '2',
+      backgroundColor = 'white',
+      borderColor = 'black',
+      textAlign = 'center',
+      borderWidth = '3px',
+      borderStyle = 'solid',
+      borderRadius = '16px',
+      padding = '5px',
+      fontFamily = "'Arial Rounded MT Bold'",
+      width = '500px',
+      height = '500px',
+      maxHeight = '70vh',
+    },
+
+    h1 'Ian Wells',
+    p [[
+      This is my site. Not yet totally sure what I want to do with it but
+      it's been fun to make. 
+    ]],
+  }
+
+  if what == 'about' then
+    about.style.display = 'block'
+  end
+
+  local svg = dom.svg {
     width = '297mm',
     height = '297mm',
     viewBox = '0 0 297 297',
@@ -75,8 +111,14 @@ return function()
     id = 'clock',
 
     oncreate = function(el)
-      dom.setInterval(update, 1000)
+      if not updateInterval then
+        updateInterval = js.global:setInterval(update, 1000)
+      end
       update()
+    end,
+
+    ondestroy = function()
+      js.global:clearInterval(updateInterval)
     end,
 
     dom.svg.style {[[
@@ -88,7 +130,7 @@ svg {
   fill: #000000;
   fill-opacity: 0;
   stroke: #000000;
-  stroke-width: 1.968;
+  stroke-width: 1;
   stroke-dasharray: none;
   stroke-opacity: 1;
 }
@@ -100,7 +142,7 @@ svg {
   font-variant: normal;
   font-weight: normal;
   font-stretch: normal;
-  font-size: 25.4px;
+  font-size: 34px;
   font-family: Arial Rounded MT Bold;
   text-align: start;
   writing-mode: lr-tb;
@@ -112,9 +154,15 @@ svg {
   fill: #000000;
   fill-opacity: 0;
   stroke: #000000;
-  stroke-width: 1.96797;
+  stroke-width: 1;
   stroke-linejoin: round;
   stroke-dasharray: none;
+
+  transition-duration: 0.3s;
+  transition-property: transform;
+}
+a:hover {
+  fill-opacity: 1;
 }
     ]]},
 
@@ -156,28 +204,31 @@ svg {
         ry= 4.7802553,
       },
 
-      dom.svg.text {
-        id = 'text1',
-        class = 'outlinetext hand',
-        
-        dom.svg.textPath {
-          href='#path2',
-          id="textPath2",
-          'Ian Wells',
-          dom.svg.tspan {
-            style= {
-              fontSize = '16.9333px',
-            },
-            id="tspan4",
-            ' ... ',
-            newTabLink('résumé', resumeLink),
-            ' ... ',
-            newTabLink('github', 'http://github.com/i-am-wells'),
-            ' ... ',
-            --dom.svg.a {href="http://google.com/", 'misc'},
-            --' ... ',
+      dom.svg.g {
+        id = 'textgroup',
+        class = 'hand',
+
+        dom.svg.text {
+          id = 'text1',
+          class = 'outlinetext hand',
+          
+          dom.svg.textPath {
+            href='#path2',
+            id="textPath2",
+            dom.svg.a {href='#about', 'Ian Wells'},
+            dom.svg.tspan {
+              style= {
+                fontSize = '24px',
+              },
+              id="tspan4",
+              '   ',
+              newTabLink('résumé', resumeLink),
+              '...',
+              newTabLink('github', 'http://github.com/i-am-wells'),
+              ' ',
+            }
           }
-        }
+        },
       },
 
       dom.svg.path {
@@ -192,5 +243,13 @@ svg {
         d = 'M 208.51786,148.5 A 60.017864,60.017864 0 0 1 148.5,208.51786 60.017864,60.017864 0 0 1 88.482136,148.5 60.017864,60.017864 0 0 1 148.5,88.482136 60.017864,60.017864 0 0 1 208.51786,148.5 Z',
       },
     },
+  }
+
+  return {
+    style = {
+      display = 'grid',
+    },
+    svg,
+    about
   }
 end

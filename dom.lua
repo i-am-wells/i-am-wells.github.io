@@ -6,6 +6,7 @@ local originalIndex
 local globalTagsEnabled = false
 local svgNamespace = 'http://www.w3.org/2000/svg'
 local pendingOnCreate = {}
+local pendingOnDestroy = {}
 
 local function getOrCreateMetatable(t)
   local meta = getmetatable(t)
@@ -65,6 +66,10 @@ local function createElement(namespace, tagName, content)
       table.insert(pendingOnCreate, {el, content.oncreate})
     end
 
+    if content.ondestroy then
+      table.insert(pendingOnDestroy, content.ondestroy)
+    end
+
   else
     appendContent(el, content, namespace)
   end
@@ -102,13 +107,17 @@ end
 
 --- Undo the effect of enableGlobalTags.
 function dom.disableGlobalTags()
-  if ~globalTagsEnabled then return end
+  if not globalTagsEnabled then return end
   getOrCreateMetatable(_G).__index = originalIndex
   globalTagsEnabled = false
 end
 
 function dom.mount(mountPoint, content)
-  -- Clear existing children
+  -- TODO make this specific to the mount point
+  for _, ondestroy in ipairs(pendingOnDestroy) do ondestroy() end
+  pendingOnDestroy = {}
+  
+    -- Clear existing children
   mountPoint:replaceChildren()
   if type(content) == 'function' then
     content = content()
@@ -151,10 +160,6 @@ dom.svg = setmetatable({}, {
 
 function dom.now()
   return js.new(js.global.Date)
-end
-
-function dom.setInterval(callback, interval)
-  return js.global.setInterval(js.global, callback, interval)
 end
 
 return dom

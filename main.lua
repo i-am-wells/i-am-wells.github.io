@@ -4,7 +4,10 @@ local dom = require 'dom'
 
 dom.enableGlobalTags()
 
+local clock = require 'clock'
+
 dom.route(js.global.document.body, {
-  [''] = require 'clock',
+  [''] = clock(),
+  about = clock 'about',
 })
 
