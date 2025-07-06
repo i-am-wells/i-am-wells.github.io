@@ -90,7 +90,6 @@ return function(what)
       borderRadius = '16px',
       padding = '5px',
       fontFamily = "'Arial Rounded MT Bold'",
-      width = '500px',
       height = '500px',
       maxWidth = '70vh',
       maxHeight = '70vh',
