@@ -77,7 +77,10 @@ return function(what)
     style = {
       display = 'none',
       position = 'absolute',
-      placeSelf = 'center',
+      left = '50%',
+      top = '50%',
+      transform = 'translate(-50%, -50%)',
+      
       gridColumn = '2',
       backgroundColor = 'white',
       borderColor = 'black',
@@ -89,6 +92,7 @@ return function(what)
       fontFamily = "'Arial Rounded MT Bold'",
       width = '500px',
       height = '500px',
+      maxWidth = '70vh',
       maxHeight = '70vh',
     },
 
